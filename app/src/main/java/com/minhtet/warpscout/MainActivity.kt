@@ -26,7 +26,6 @@ class MainActivity : AppCompatActivity() {
             disableButtons()
             tvOutput.text = "Registering Account...\n"
             CoroutineScope(Dispatchers.IO).launch {
-                // "register" command ကို ပေးပို့ခြင်း
                 executeCommand("register")
             }
         }
@@ -36,7 +35,6 @@ class MainActivity : AppCompatActivity() {
             disableButtons()
             tvOutput.text = "Starting scan...\n"
             CoroutineScope(Dispatchers.IO).launch {
-                // "scan", "-p", "awg", "-P" command များကို ပေးပို့ခြင်း
                 executeCommand("scan", "-p", "awg", "-P")
             }
         }
@@ -52,7 +50,6 @@ class MainActivity : AppCompatActivity() {
         btnRegister.isEnabled = true
     }
 
-    // Command မျိုးစုံကို လက်ခံမည့် Function အသစ်
     private suspend fun executeCommand(vararg args: String) {
         val nativeLibDir = applicationInfo.nativeLibraryDir
         val executableFile = File(nativeLibDir, "libwarpscout.so")
@@ -60,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         try {
             if (!executableFile.exists()) {
                 withContext(Dispatchers.Main) {
-                    tvOutput.append("\nError: libwarpscout.so not found!")
+                    tvOutput.append("\nError: libwarpscout.so not found in Native Library Directory!")
                     enableButtons()
                 }
                 return
@@ -70,13 +67,17 @@ class MainActivity : AppCompatActivity() {
             val commandList = mutableListOf(executableFile.absolutePath)
             commandList.addAll(args)
 
-            val process = ProcessBuilder(commandList)
-                .redirectErrorStream(true)
-                .start()
+            // ProcessBuilder ဖြင့် Command Run ခြင်း
+            val processBuilder = ProcessBuilder(commandList)
+            processBuilder.directory(filesDir) // အရေးကြီး: JSON ဖိုင်ကို App ၏ Storage တွင် သိမ်းရန်
+            processBuilder.redirectErrorStream(true)
+            
+            val process = processBuilder.start()
 
             val reader = process.inputStream.bufferedReader()
             var line: String?
 
+            // Output ကို ဖတ်ပြီး UI တွင် ပြသခြင်း
             while (reader.readLine().also { line = it } != null) {
                 withContext(Dispatchers.Main) {
                     tvOutput.append("$line\n")
