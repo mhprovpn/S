@@ -13,31 +13,25 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    # --- ဒီအဆင့်ကို အသစ်ထပ်ထည့်ပါ ---
     - name: Extract WarpScout tar.gz and move to assets
       run: |
-        # .tar.gz ဖိုင်ကို Extract လုပ်ခြင်း
         tar -xzf warpscout_0.16.0_android_arm64.tar.gz
-        
-        # assets folder မရှိသေးပါက တည်ဆောက်ခြင်း
         mkdir -p app/src/main/assets
-        
-        # ထွက်လာတဲ့ warpscout binary ကို assets folder ထဲ ရွှေ့ခြင်း
         mv warpscout app/src/main/assets/warpscout
-    # --------------------------------
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    # gradlew မလိုဘဲ တိုက်ရိုက် run နိုင်ရန် gradle ကို setup လုပ်ခြင်း
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
 
+    # ./gradlew အစား gradle ကို တိုက်ရိုက် အသုံးပြုခြင်း
     - name: Build Release APK
-      run: ./gradlew assembleRelease
+      run: gradle assembleRelease 
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
