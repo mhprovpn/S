@@ -9,27 +9,38 @@
         android:id="@+id/btnRegister"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Register Warp Account" />
+        android:text="REGISTER WARP ACCOUNT" />
 
     <Button
         android:id="@+id/btnScan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start WarpScout Scan" />
+        android:layout_marginTop="8dp"
+        android:text="START WARPSCOUT SCAN" />
 
+    <!-- အပေါ်အောက် ဆွဲကြည့်ရန် ScrollView -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="16dp"
         android:background="#1E1E1E">
 
-        <TextView
-            android:id="@+id/tvOutput"
+        <!-- ဘေးတိုက် ဆွဲကြည့်ရန် HorizontalScrollView အသစ်ထပ်ထည့်ခြင်း -->
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:textColor="#00FF00"
-            android:fontFamily="monospace"
-            android:text="Ready to scan...\n" />
+            android:fillViewport="true">
+
+            <TextView
+                android:id="@+id/tvOutput"
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:textColor="#00FF00"
+                android:fontFamily="monospace"
+                android:textIsSelectable="true"
+                android:text="Ready to scan...\n" />
+
+        </HorizontalScrollView>
     </ScrollView>
 </LinearLayout>
