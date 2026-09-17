@@ -6,12 +6,12 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.*
 import java.io.File
-import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvOutput: TextView
     private lateinit var btnScan: Button
+    private lateinit var btnRegister: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,20 +19,41 @@ class MainActivity : AppCompatActivity() {
 
         tvOutput = findViewById(R.id.tvOutput)
         btnScan = findViewById(R.id.btnScan)
+        btnRegister = findViewById(R.id.btnRegister)
 
-        btnScan.setOnClickListener {
-            btnScan.isEnabled = false
-            tvOutput.text = "Extracting binary and starting scan...\n"
-            
-            // Background thread တွင် အလုပ်လုပ်ရန်
+        // Register ခလုတ် နှိပ်သောအခါ
+        btnRegister.setOnClickListener {
+            disableButtons()
+            tvOutput.text = "Registering Account...\n"
             CoroutineScope(Dispatchers.IO).launch {
-                runWarpScout()
+                // "register" command ကို ပေးပို့ခြင်း
+                executeCommand("register")
+            }
+        }
+
+        // Scan ခလုတ် နှိပ်သောအခါ
+        btnScan.setOnClickListener {
+            disableButtons()
+            tvOutput.text = "Starting scan...\n"
+            CoroutineScope(Dispatchers.IO).launch {
+                // "scan", "-p", "awg", "-P" command များကို ပေးပို့ခြင်း
+                executeCommand("scan", "-p", "awg", "-P")
             }
         }
     }
 
-    private suspend fun runWarpScout() {
-        // Native Library ထဲမှာရှိတဲ့ .so ဖိုင်လမ်းကြောင်းကို ရှာခြင်း
+    private fun disableButtons() {
+        btnScan.isEnabled = false
+        btnRegister.isEnabled = false
+    }
+
+    private fun enableButtons() {
+        btnScan.isEnabled = true
+        btnRegister.isEnabled = true
+    }
+
+    // Command မျိုးစုံကို လက်ခံမည့် Function အသစ်
+    private suspend fun executeCommand(vararg args: String) {
         val nativeLibDir = applicationInfo.nativeLibraryDir
         val executableFile = File(nativeLibDir, "libwarpscout.so")
 
@@ -40,16 +61,18 @@ class MainActivity : AppCompatActivity() {
             if (!executableFile.exists()) {
                 withContext(Dispatchers.Main) {
                     tvOutput.append("\nError: libwarpscout.so not found!")
-                    btnScan.isEnabled = true
+                    enableButtons()
                 }
                 return
             }
 
-            // Android OS ကိုယ်တိုင်က Execute permission ပေးထားပြီးသားဖြစ်လို့ 
-            // setExecutable ထပ်လုပ်စရာ မလိုတော့ဘဲ တိုက်ရိုက် Run နိုင်ပါပြီ
-            val process = ProcessBuilder(
-                executableFile.absolutePath, "scan", "-p", "awg", "-P"
-            ).redirectErrorStream(true).start()
+            // Command စာရင်း တည်ဆောက်ခြင်း
+            val commandList = mutableListOf(executableFile.absolutePath)
+            commandList.addAll(args)
+
+            val process = ProcessBuilder(commandList)
+                .redirectErrorStream(true)
+                .start()
 
             val reader = process.inputStream.bufferedReader()
             var line: String?
@@ -63,14 +86,14 @@ class MainActivity : AppCompatActivity() {
             process.waitFor()
             
             withContext(Dispatchers.Main) {
-                tvOutput.append("\n--- Scan Completed ---")
-                btnScan.isEnabled = true
+                tvOutput.append("\n--- Completed ---")
+                enableButtons()
             }
 
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 tvOutput.append("\nError: ${e.message}")
-                btnScan.isEnabled = true
+                enableButtons()
             }
         }
     }
