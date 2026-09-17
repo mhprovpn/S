@@ -32,23 +32,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun runWarpScout() {
-        val binaryName = "warpscout"
-        val executableFile = File(filesDir, binaryName)
+        // Native Library ထဲမှာရှိတဲ့ .so ဖိုင်လမ်းကြောင်းကို ရှာခြင်း
+        val nativeLibDir = applicationInfo.nativeLibraryDir
+        val executableFile = File(nativeLibDir, "libwarpscout.so")
 
         try {
-            // ၁။ Assets ထဲမှ Binary ကို Internal Storage သို့ ကူးယူခြင်း
             if (!executableFile.exists()) {
-                assets.open(binaryName).use { input ->
-                    FileOutputStream(executableFile).use { output ->
-                        input.copyTo(output)
-                    }
+                withContext(Dispatchers.Main) {
+                    tvOutput.append("\nError: libwarpscout.so not found!")
+                    btnScan.isEnabled = true
                 }
+                return
             }
 
-            // ၂။ Execute permission ပေးခြင်း
-            executableFile.setExecutable(true)
-
-            // ၃။ AmneziaWG အတွက် Command Run ခြင်း (.\warpscout scan -p awg -P)
+            // Android OS ကိုယ်တိုင်က Execute permission ပေးထားပြီးသားဖြစ်လို့ 
+            // setExecutable ထပ်လုပ်စရာ မလိုတော့ဘဲ တိုက်ရိုက် Run နိုင်ပါပြီ
             val process = ProcessBuilder(
                 executableFile.absolutePath, "scan", "-p", "awg", "-P"
             ).redirectErrorStream(true).start()
@@ -56,7 +54,6 @@ class MainActivity : AppCompatActivity() {
             val reader = process.inputStream.bufferedReader()
             var line: String?
 
-            // ၄။ ထွက်လာသော Output များကို ဖတ်ပြီး UI တွင် အချိန်နှင့်တပြေးညီ ဖော်ပြခြင်း
             while (reader.readLine().also { line = it } != null) {
                 withContext(Dispatchers.Main) {
                     tvOutput.append("$line\n")
