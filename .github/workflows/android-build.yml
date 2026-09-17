@@ -13,11 +13,7 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    - name: Extract WarpScout tar.gz and move to assets
-      run: |
-        tar -xzf warpscout_0.16.0_android_arm64.tar.gz
-        mkdir -p app/src/main/assets
-        mv warpscout app/src/main/assets/warpscout
+    # (ဒီနေရာမှာရှိနေတဲ့ Extract လုပ်တဲ့ Step ကို ဖျက်လိုက်ပါပြီ)
 
     - name: Set up JDK 17
       uses: actions/setup-java@v5
