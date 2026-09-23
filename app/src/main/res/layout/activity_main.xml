@@ -10,7 +10,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="START WARPSCOUT SCAN" />
+        android:text="START SCAN" />
+
+    <Button
+        android:id="@+id/btnScan2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="START SCAN 2" />
 
     <!-- အပေါ်အောက် ဆွဲကြည့်ရန် ScrollView -->
     <ScrollView
