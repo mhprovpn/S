@@ -6,12 +6,12 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.*
 import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvOutput: TextView
     private lateinit var btnScan: Button
-    private lateinit var btnRegister: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,35 +19,42 @@ class MainActivity : AppCompatActivity() {
 
         tvOutput = findViewById(R.id.tvOutput)
         btnScan = findViewById(R.id.btnScan)
-        btnRegister = findViewById(R.id.btnRegister)
 
-        // Register ခလုတ် နှိပ်သောအခါ
-        btnRegister.setOnClickListener {
-            disableButtons()
-            tvOutput.text = "Registering Account...\n"
-            CoroutineScope(Dispatchers.IO).launch {
-                executeCommand("register")
-            }
-        }
-
-        // Scan ခလုတ် နှိပ်သောအခါ
         btnScan.setOnClickListener {
-            disableButtons()
-            tvOutput.text = "Starting scan...\n"
+            btnScan.isEnabled = false
+            tvOutput.text = "Preparing account and starting scan...\n"
+            
             CoroutineScope(Dispatchers.IO).launch {
+                // ၁။ Scan မစခင် JSON ဖိုင်ကို အရင် ကူးယူပါမယ်
+                copyAccountFileIfNeeded()
+                
+                // ၂။ Scan Command ကို တန်းပြီး Run ပါမယ်
                 executeCommand("scan", "-p", "awg", "-P")
             }
         }
     }
 
-    private fun disableButtons() {
-        btnScan.isEnabled = false
-        btnRegister.isEnabled = false
-    }
-
-    private fun enableButtons() {
-        btnScan.isEnabled = true
-        btnRegister.isEnabled = true
+    // Assets ထဲက JSON ဖိုင်ကို filesDir သို့ ကူးယူမည့် Function
+    private suspend fun copyAccountFileIfNeeded() {
+        val accountFile = File(filesDir, "warpscout-account.json")
+        
+        // ဖိုင် မရှိသေးမှသာ ကူးယူပါမည်
+        if (!accountFile.exists()) {
+            try {
+                assets.open("warpscout-account.json").use { input ->
+                    FileOutputStream(accountFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    tvOutput.append("Account file loaded successfully.\n")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    tvOutput.append("Error copying account file: ${e.message}\n")
+                }
+            }
+        }
     }
 
     private suspend fun executeCommand(vararg args: String) {
@@ -57,27 +64,24 @@ class MainActivity : AppCompatActivity() {
         try {
             if (!executableFile.exists()) {
                 withContext(Dispatchers.Main) {
-                    tvOutput.append("\nError: libwarpscout.so not found in Native Library Directory!")
-                    enableButtons()
+                    tvOutput.append("\nError: libwarpscout.so not found!")
+                    btnScan.isEnabled = true
                 }
                 return
             }
 
-            // Command စာရင်း တည်ဆောက်ခြင်း
             val commandList = mutableListOf(executableFile.absolutePath)
             commandList.addAll(args)
 
-            // ProcessBuilder ဖြင့် Command Run ခြင်း
             val processBuilder = ProcessBuilder(commandList)
-            processBuilder.directory(filesDir) // အရေးကြီး: JSON ဖိုင်ကို App ၏ Storage တွင် သိမ်းရန်
+            // JSON ဖိုင်ရှိရာ filesDir ကို Working Directory အဖြစ် သတ်မှတ်ခြင်း
+            processBuilder.directory(filesDir)
             processBuilder.redirectErrorStream(true)
             
             val process = processBuilder.start()
-
             val reader = process.inputStream.bufferedReader()
             var line: String?
 
-            // Output ကို ဖတ်ပြီး UI တွင် ပြသခြင်း
             while (reader.readLine().also { line = it } != null) {
                 withContext(Dispatchers.Main) {
                     tvOutput.append("$line\n")
@@ -88,13 +92,13 @@ class MainActivity : AppCompatActivity() {
             
             withContext(Dispatchers.Main) {
                 tvOutput.append("\n--- Completed ---")
-                enableButtons()
+                btnScan.isEnabled = true
             }
 
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 tvOutput.append("\nError: ${e.message}")
-                enableButtons()
+                btnScan.isEnabled = true
             }
         }
     }
