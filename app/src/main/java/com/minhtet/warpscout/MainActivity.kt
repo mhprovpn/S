@@ -12,6 +12,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvOutput: TextView
     private lateinit var btnScan: Button
+    private lateinit var btnScan2: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,26 +20,43 @@ class MainActivity : AppCompatActivity() {
 
         tvOutput = findViewById(R.id.tvOutput)
         btnScan = findViewById(R.id.btnScan)
+        btnScan2 = findViewById(R.id.btnScan2)
 
+        // ပထမ Scan ခလုတ် (AWG)
         btnScan.setOnClickListener {
-            btnScan.isEnabled = false
-            tvOutput.text = "Preparing account and starting scan...\n"
+            disableButtons()
+            tvOutput.text = "Starting Scan 1 (AWG)...\n"
             
             CoroutineScope(Dispatchers.IO).launch {
-                // ၁။ Scan မစခင် JSON ဖိုင်ကို အရင် ကူးယူပါမယ်
                 copyAccountFileIfNeeded()
-                
-                // ၂။ Scan Command ကို တန်းပြီး Run ပါမယ်
                 executeCommand("scan", "-p", "awg", "-P")
+            }
+        }
+
+        // ဒုတိယ Scan ခလုတ် (QUIC)
+        btnScan2.setOnClickListener {
+            disableButtons()
+            tvOutput.text = "Starting Scan 2 (QUIC)...\n"
+            
+            CoroutineScope(Dispatchers.IO).launch {
+                copyAccountFileIfNeeded()
+                executeCommand("scan", "-p", "awg", "-P", "-gen-i1", "quic")
             }
         }
     }
 
-    // Assets ထဲက JSON ဖိုင်ကို filesDir သို့ ကူးယူမည့် Function
+    private fun disableButtons() {
+        btnScan.isEnabled = false
+        btnScan2.isEnabled = false
+    }
+
+    private fun enableButtons() {
+        btnScan.isEnabled = true
+        btnScan2.isEnabled = true
+    }
+
     private suspend fun copyAccountFileIfNeeded() {
         val accountFile = File(filesDir, "warpscout-account.json")
-        
-        // ဖိုင် မရှိသေးမှသာ ကူးယူပါမည်
         if (!accountFile.exists()) {
             try {
                 assets.open("warpscout-account.json").use { input ->
@@ -47,7 +65,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    tvOutput.append("Account file loaded successfully.\n")
+                    tvOutput.append("Account file loaded.\n")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -65,7 +83,7 @@ class MainActivity : AppCompatActivity() {
             if (!executableFile.exists()) {
                 withContext(Dispatchers.Main) {
                     tvOutput.append("\nError: libwarpscout.so not found!")
-                    btnScan.isEnabled = true
+                    enableButtons()
                 }
                 return
             }
@@ -74,7 +92,6 @@ class MainActivity : AppCompatActivity() {
             commandList.addAll(args)
 
             val processBuilder = ProcessBuilder(commandList)
-            // JSON ဖိုင်ရှိရာ filesDir ကို Working Directory အဖြစ် သတ်မှတ်ခြင်း
             processBuilder.directory(filesDir)
             processBuilder.redirectErrorStream(true)
             
@@ -92,13 +109,13 @@ class MainActivity : AppCompatActivity() {
             
             withContext(Dispatchers.Main) {
                 tvOutput.append("\n--- Completed ---")
-                btnScan.isEnabled = true
+                enableButtons()
             }
 
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 tvOutput.append("\nError: ${e.message}")
-                btnScan.isEnabled = true
+                enableButtons()
             }
         }
     }
